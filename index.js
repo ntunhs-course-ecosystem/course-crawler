@@ -1,6 +1,6 @@
 import fsP from "fs/promises";
 import puppeteer from "puppeteer";
-import { sanitizeTime } from "./utils.js";
+import { sanitizeTime, sanitizedPeriod } from "./utils.js";
 const browser = await puppeteer.launch({ headless: false });
 const page = await browser.newPage();
 
@@ -124,9 +124,7 @@ async function getCoursesContent() {
 
             let period = await tr.$eval(`span[id*="lblSecNo"]`, el => el.textContent.trim());
             if (period) {
-                let periods = period.matchAll(/(\d+)(?:~(\d+))?/gm).next().value;
-                let startPeriod = periods.at(1);
-                let endPeriod = periods.length == 3 ? periods.at(2) : periods.at(1);
+                let { startPeriod, endPeriod } = sanitizedPeriod(period);
                 course.startPeriod = startPeriod;
                 course.endPeriod = endPeriod;
             } else {

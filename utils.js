@@ -17,4 +17,20 @@ function sanitizeTime(time) {
     };
 }
 
-export { sanitizeTime };
+function sanitizedPeriod(period) {
+    let removedChinesePeriod = period.replace(/節/gm, "");
+    let tilde = removedChinesePeriod.indexOf("~");
+    let startPeriod = removedChinesePeriod.substring(0, tilde);
+    
+    let endPeriod = removedChinesePeriod.substring(tilde + 1);
+    if (tilde < 0) {
+        startPeriod = endPeriod;
+    }
+
+    return {
+        startPeriod,
+        endPeriod
+    };
+}
+
+export { sanitizeTime, sanitizedPeriod };
