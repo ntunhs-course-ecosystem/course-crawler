@@ -20,7 +20,6 @@ export type Course = {
     weekNumber?: number; // 上課週次
     multipleTeacherName?: string; // 授課教師 (多個)
     note?: string; // 備註
-    coursePlanRelativeUrl?: string; // 教學計畫相對網址
     courseAbstract?: string; // 課程摘要
     courseEngAbstract?: string; // 課程英文摘要
 

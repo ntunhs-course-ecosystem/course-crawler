@@ -95,7 +95,6 @@ async function getCoursesContent() {
                 weekNumber: await tr.$eval(`span[id*="hidWEEKDESC"]`, el => el.textContent.trim()),
                 multipleTeacherName: await tr.$eval(`div[id*="panMultipleTeachNameLinks"]`, el => el.textContent.trim()),
                 note: await tr.$eval(`span[id*="lblRemark"]`, el => el.title),
-                coursePlanRelativeUrl: await tr.$eval(`span[id*="hidUploadFile"]`, el => el.textContent.trim()),
                 courseAbstract: await tr.$eval(`span[id*="hidABSTRACT"]`, el => el.textContent.trim()),
                 courseEngAbstract: await tr.$eval(`span[id*="hidEABSTRACT"]`, el => el.textContent.trim()),
 
