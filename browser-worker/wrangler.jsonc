@@ -7,7 +7,9 @@
 	"name": "ntunhs-course",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-09-06",
-	"compatibility_flags": ["nodejs_compat"],
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
 	"browser": {
 		"binding": "NTUNHS_COURSE_BROWSER",
 	},
@@ -27,6 +29,9 @@
 		"crons": [
 			"0 0 * * *" // 每天凌晨執行
 		]
+	},
+	"vars": {
+		"BASIC_AUTH_USER": "chin0"
 	}
 	/**
 	 * Smart Placement
