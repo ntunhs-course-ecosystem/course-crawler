@@ -99,6 +99,74 @@ pnpm install
 pnpm dev
 ```
 
+## 部屬
+
+輸入以下指令部屬到 cloudflare worker
+
+```bash
+pnpm run deploy
+```
+
+### 設定環境變數
+
+- 進到 cloudflare dashboard
+- 進到 `計算和 AI` -> `Workers 和 Pages`
+- 點開剛剛部屬的 worker (正常會是 browser-worker)
+- 點擊 `設定` 標籤
+- 在 `變數和秘密` 區塊中設定環境變數 (BASIC_AUTH_USER 和 BASIC_AUTH_PASS，密碼請務必使用`秘密`類型)
+
+## 分頁使用方法
+
+在 `/api/v1/search` 下，支援分頁查詢，使用 `cursor` 和 `limit` 參數來控制分頁
+
+例如：
+
+```json
+{
+    "data": [],
+    "pagination": {
+        "hasNextPage": true,
+        "nextCursor": 20
+    }
+}
+```
+
+這時，可以透過 `pagination.hasNextPage` 來判斷是否有下一頁
+
+然後，透過 `/api/v1/search?cursor=20` 來取得下一頁的資料
+
+## 課程資料欄位對應
+
+| 欄位 | 說明 |
+| :--- | :--- |
+| semester | 學期 |
+| courseFullID | 課程全碼 |
+| department | 系所 |
+| departmentID | 系所代碼 |
+| courseType | 課程類別 |
+| subjectID | 科目代碼 |
+| subjectGroup | 科目組别 |
+| grade | 年級 |
+| classGroup | 班組 |
+| className | 上課班組名稱 |
+| classID | 上課班組代碼 |
+| credit | 學分 |
+| totalOfTakingStudents | 修課人數 |
+| numberOfTakingStudents | 上課人數 |
+| weekNumber | 上課週次 |
+| day | 星期 |
+| dayNum | 星期幾 (1-7) |
+| startPeriod | 開始節次 |
+| endPeriod | 結束節次 |
+| startTime | 開始時間 |
+| endTime | 結束時間 |
+| courseLocation | 課程地點 |
+| mainTeacherName | 主要開課教師姓名 |
+| multipleTeacherName | 授課教師 (多個) |
+| note | 備註 |
+| courseAbstract | 課程摘要 |
+| courseEngAbstract | 課程英文摘要 |
+
 ## 目錄結構說明
 
 - src/db/: 資料庫相關邏輯
