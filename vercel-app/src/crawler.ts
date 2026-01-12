@@ -1,6 +1,5 @@
-import type { Course } from '../schemas/course.schema';
-import puppeteer from '@cloudflare/puppeteer';
-import { sanitizePeriod, sanitizeTime } from '../utils';
+import type { Course } from './schemas/course.schema.js';
+import { sanitizePeriod, sanitizeTime } from './utils.js';
 
 const dayNumMapping: Record<string, number> = Object.freeze({
 	週一: 1,
@@ -12,19 +11,22 @@ const dayNumMapping: Record<string, number> = Object.freeze({
 	週日: 7,
 });
 
-export async function runCourseCrawler(fetcher: Fetcher, semester?: string) {
-	const browser = await puppeteer.launch(fetcher);
+export async function runCourseCrawler(puppeteer: typeof import("puppeteer"), launchOptions: any, semester?: string) {
+	const browser = await puppeteer.launch(launchOptions);
 
 	try {
 		const page = await browser.newPage();
 		// 1. 前往查詢頁面
+		console.log("Going to query course page");
 		await page.goto('https://system10.ntunhs.edu.tw/AcadInfoSystem/Modules/QueryCourse/QueryCourse.aspx');
 
+		console.log("Waiting for semester select");
 		const semesterSelect = await page.waitForSelector('#ContentPlaceHolder1_ddlSem');
+		console.log("Semester select found");
 		if (semesterSelect) {
 			if (semester) {
 				// 檢查指定的 sem 是否存在於選項中
-				const semExists = await page.evaluate((sem) => {
+				const semExists = await page.evaluate((sem: string) => {
 					const select = document.querySelector('#ContentPlaceHolder1_ddlSem') as unknown as HTMLSelectElement;
 					return Array.from(select.options).some((opt) => opt.value === sem);
 				}, semester);
@@ -40,22 +42,30 @@ export async function runCourseCrawler(fetcher: Fetcher, semester?: string) {
 			}
 		}
 		// 3. 點擊查詢
+		console.log("Clicking query button");
 		await page.click('#ContentPlaceHolder1_btnQuery');
+		console.log("Query button clicked");
 
 		// 4. 等待表格載入
+		console.log("Waiting for table to load");
 		await page.waitForSelector('#ContentPlaceHolder1_NewGridView', { timeout: 60000 });
+		console.log("Table loaded");
 
 		// 5. 抓取內容
+		console.log("Fetching courses");
 		const courses: Course[] = [];
 		const trs = await page.$$('#ContentPlaceHolder1_NewGridView tr');
+		console.log("Courses fetched");
 
 		// 取得所有 Group ID
+		console.log("Getting all group IDs");
 		const groups: string[] = [];
 		for (const tr of trs) {
 			const group = await tr.evaluate((el) => el.getAttribute('group'));
 			if (group && !groups.includes(group)) groups.push(group);
 		}
-
+		console.log("Group IDs fetched");
+		
 		for (const group of groups) {
 			const tr = await page.$(`tr[group="${group}"]`);
 			if (!tr) continue;
@@ -120,6 +130,7 @@ export async function runCourseCrawler(fetcher: Fetcher, semester?: string) {
 				console.error(`解析課程失敗 (Group: ${group}):`, e);
 			}
 		}
+		console.log("Courses fetched");
 
 		return courses;
 	} catch (error) {

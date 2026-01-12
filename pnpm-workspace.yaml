@@ -1,2 +1,9 @@
+packages:
+  - browser-worker
+  - vercel-app
+
 onlyBuiltDependencies:
+  - esbuild
   - puppeteer
+  - sharp
+  - workerd

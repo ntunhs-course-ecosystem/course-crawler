@@ -11,6 +11,7 @@
 	},
 	"devDependencies": {
 		"@cloudflare/vitest-pool-workers": "^0.8.19",
+		"@types/node": "22",
 		"typescript": "^5.5.2",
 		"vitest": "~3.2.0",
 		"wrangler": "^4.58.0"
@@ -19,7 +20,6 @@
 		"@cloudflare/puppeteer": "^1.0.4",
 		"@hono/standard-validator": "^0.2.1",
 		"@hono/swagger-ui": "^0.5.3",
-		"@types/node": "22",
 		"hono": "^4.11.3",
 		"hono-openapi": "^1.1.2",
 		"kysely": "^0.28.9",
