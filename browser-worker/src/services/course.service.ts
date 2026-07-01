@@ -4,6 +4,7 @@ import { Database } from "../types/database";
 export interface CourseQueryParams {
     semester?: number[];
     departmentID?: string[];
+    department?: string[];
     grade?: string[];
     dayNum?: number[];
     startPeriod?: number[];
@@ -20,6 +21,7 @@ export class CourseService {
         const {
             semester,
             departmentID,
+			department,
             grade,
             dayNum,
             startPeriod,
@@ -32,7 +34,7 @@ export class CourseService {
         let query = this.db
             .selectFrom('courses')
             .selectAll()
-        
+
         if (semester && semester.length > 0) {
             query = query.where('semester', 'in', semester);
         }
@@ -40,6 +42,12 @@ export class CourseService {
         if (departmentID && departmentID.length > 0) {
             query = query.where('departmentID', 'in', departmentID);
         }
+
+		if (department && department.length > 0) {
+			query = query.where((eb) => eb.or(
+				department.map(dept => eb('department', 'like', `%${dept}%`))
+			));
+		}
 
         if (grade && grade.length > 0) {
             query = query.where('grade', 'in', grade);
@@ -64,6 +72,8 @@ export class CourseService {
         if (cursor) {
             query = query.where('id', '>', cursor);
         }
+
+		console.log(query.compile());
 
         const items = await query
             .orderBy('id', 'asc')
