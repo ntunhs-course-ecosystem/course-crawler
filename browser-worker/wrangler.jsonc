@@ -31,7 +31,8 @@
 		]
 	},
 	"vars": {
-		"BASIC_AUTH_USER": "chin0"
+		"BASIC_AUTH_USER": "chin0",
+		"VERCEL_APP_URL": "https://ntunhs-course-crawler.vercel.app"
 	}
 	/**
 	 * Smart Placement
