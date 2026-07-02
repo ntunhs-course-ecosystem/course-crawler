@@ -2,7 +2,12 @@ import "dotenv/config";
 
 import { Hono } from "hono";
 import { basicAuth } from "hono/basic-auth";
+import {
+    courseParamsToBindValues,
+    normalizeCourseParams
+} from "./course-params.js";
 import { runCourseCrawler } from "./crawler.js";
+import type { Course } from "./schemas/course.schema.js";
 import { env } from "hono/adapter";
 
 type Bindings = {
@@ -51,7 +56,7 @@ async function getChromiumPath(): Promise<string> {
     return downloadPromise;
 }
 
-async function updateD1ViaAPI(env: Bindings, courses: any) {
+async function updateD1ViaAPI(env: Bindings, courses: Course[]) {
     const { CF_ACCOUNT_ID, CF_DATABASE_ID, CF_API_TOKEN } = env;
     const url = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${CF_DATABASE_ID}/query`;
 
@@ -62,11 +67,12 @@ async function updateD1ViaAPI(env: Bindings, courses: any) {
             classGroup, className, classID, credit, totalOfTakingStudents, 
             numberOfTakingStudents, weekNumber, day, dayNum, startPeriod, 
             endPeriod, startTime, endTime, courseLocation, mainTeacherName, 
-            multipleTeacherName, note, courseAbstract, courseEngAbstract
+            multipleTeacherName, note, courseAbstract, courseEngAbstract,
+            content_hash
         ) VALUES (
             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
-            ?, ?, ?, ?, ?, ?, ?, ?, ?
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
         )
         ON CONFLICT(semester, courseFullID) DO UPDATE SET
             courseName = EXCLUDED.courseName,
@@ -95,44 +101,15 @@ async function updateD1ViaAPI(env: Bindings, courses: any) {
             multipleTeacherName = EXCLUDED.multipleTeacherName,
             note = EXCLUDED.note,
             courseAbstract = EXCLUDED.courseAbstract,
-            courseEngAbstract = EXCLUDED.courseEngAbstract
+            courseEngAbstract = EXCLUDED.courseEngAbstract,
+            content_hash = EXCLUDED.content_hash
+        WHERE courses.content_hash IS NULL
+           OR courses.content_hash IS NOT EXCLUDED.content_hash
     `;
 
-    // 格式化為 Cloudflare API 要求的格式
-    // 注意：Cloudflare D1 API 的 /query 支援單一物件或物件陣列（用於 batch）
-    const body = courses.map((course: any) => ({
-        sql: sql,
-        params: [
-            Number(course.semester),
-            course.courseFullID || "",
-            course.courseName || "",
-            course.courseEngName || null,
-            course.department || "",
-            course.departmentID || "",
-            course.courseType || "",
-            course.subjectID || "",
-            course.subjectGroup || "",
-            course.grade || "",
-            course.classGroup || "",
-            course.className || "",
-            course.classID || "",
-            Number(course.credit) || 0,
-            Number(course.totalOfTakingStudents) || null,
-            Number(course.numberOfTakingStudents) || 0,
-            course.weekNumber || "",
-            course.day || "",
-            course.dayNum || 0,
-            Number(course.startPeriod) || 0,
-            Number(course.endPeriod) || 0,
-            course.startTime || "",
-            course.endTime || "",
-            course.courseLocation || null,
-            course.mainTeacherName || "",
-            course.multipleTeacherName || null,
-            course.note || null,
-            course.courseAbstract || null,
-            course.courseEngAbstract || null
-        ]
+    const body = courses.map((course) => ({
+        sql,
+        params: courseParamsToBindValues(normalizeCourseParams(course))
     }));
 
     const response = await fetch(url, {
