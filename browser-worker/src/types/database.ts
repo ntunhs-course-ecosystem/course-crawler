@@ -54,6 +54,8 @@ export interface CourseTable {
     courseAbstract: string | null;
     courseEngAbstract: string | null;
 
+    content_hash: string | null;
+
     created_at: ColumnType<string, string | undefined, never>;
 }
 
