@@ -6,7 +6,12 @@ import {
     courseParamsToBindValues,
     normalizeCourseParams
 } from "./course-params.js";
-import { runCourseCrawler } from "./crawler.js";
+import {
+    markCrawlJobFailed,
+    markCrawlJobRunning,
+    markCrawlJobSucceeded
+} from "./crawl-job.js";
+import { runCourseCrawler, type PuppeteerLauncher } from "./crawler.js";
 import type { Course } from "./schemas/course.schema.js";
 import { env } from "hono/adapter";
 
@@ -17,6 +22,14 @@ type Bindings = {
     CF_DATABASE_ID: string;
     CF_API_TOKEN: string;
 };
+
+type D1BatchResult = {
+    success: boolean;
+    errors?: unknown[];
+    result?: Array<{ meta?: { rows_written?: number } }>;
+};
+
+import type { LaunchOptions } from "puppeteer-core";
 
 const CHROMIUM_PACK_URL = process.env.VERCEL_BLOB_URL
     ? process.env.VERCEL_BLOB_URL
@@ -123,7 +136,89 @@ async function updateD1ViaAPI(env: Bindings, courses: Course[]) {
         })
     });
 
-    return await response.json();
+    return (await response.json()) as D1BatchResult;
+}
+
+function sumRowsWritten(result: D1BatchResult): number {
+    return (result.result ?? []).reduce(
+        (sum, item) => sum + (item.meta?.rows_written ?? 0),
+        0
+    );
+}
+
+async function resolvePuppeteer(): Promise<{
+    puppeteer: PuppeteerLauncher;
+    launchOptions: LaunchOptions;
+}> {
+    const isVercel = !!process.env.VERCEL_ENV;
+    let launchOptions: LaunchOptions = { headless: true };
+
+    if (isVercel) {
+        const chromium = (await import("@sparticuz/chromium-min")).default;
+        const puppeteer = await import("puppeteer-core");
+        const executablePath = await getChromiumPath();
+        launchOptions = {
+            ...launchOptions,
+            args: chromium.args,
+            executablePath
+        };
+        console.log("Launching browser with executable path:", executablePath);
+        return { puppeteer: puppeteer as unknown as PuppeteerLauncher, launchOptions };
+    }
+
+    const puppeteer = await import("puppeteer");
+    return { puppeteer: puppeteer as unknown as PuppeteerLauncher, launchOptions };
+}
+
+async function runCrawlPipeline(
+    bindings: Bindings,
+    semester: string | undefined,
+    jobId?: string
+) {
+    if (jobId) {
+        const running = await markCrawlJobRunning(bindings, jobId);
+        if (!running.success) {
+            console.error("Failed to mark job running:", running.errors);
+        }
+    }
+
+    try {
+        const { puppeteer, launchOptions } = await resolvePuppeteer();
+        const courses = await runCourseCrawler(puppeteer, launchOptions, semester);
+
+        if (courses instanceof Response) {
+            const errorText = await courses.text();
+            if (jobId) {
+                await markCrawlJobFailed(bindings, jobId, errorText);
+            }
+            return;
+        }
+
+        const result = await updateD1ViaAPI(bindings, courses);
+        if (!result.success) {
+            const errorText = JSON.stringify(result.errors ?? "D1 update failed");
+            if (jobId) {
+                await markCrawlJobFailed(bindings, jobId, errorText);
+            }
+            return;
+        }
+
+        if (jobId) {
+            await markCrawlJobSucceeded(
+                bindings,
+                jobId,
+                courses.length,
+                sumRowsWritten(result)
+            );
+        }
+    } catch (error) {
+        const message =
+            error instanceof Error ? error.message : "Unknown error";
+        console.error("Crawl pipeline failed:", error);
+        if (jobId) {
+            await markCrawlJobFailed(bindings, jobId, message);
+        }
+    }
 }
 
 app.use(
@@ -139,44 +234,41 @@ app.use(
         return auth(c, next);
     }
 ).post("/api/v1/crawler", async (c) => {
-    try {
+    const jobId = c.req.query("jobId");
+    const sem = c.req.query("sem");
+    const bindings = env(c);
+
+    if (jobId) {
         const isVercel = !!process.env.VERCEL_ENV;
-        let puppeteer: any,
-            launchOptions: any = {
-                headless: true
-            };
+        const task = () => runCrawlPipeline(bindings, sem, jobId);
 
         if (isVercel) {
-            // Vercel: Use puppeteer-core with downloaded Chromium binary
-            const chromium = (await import("@sparticuz/chromium-min")).default;
-            puppeteer = await import("puppeteer-core");
-            const executablePath = await getChromiumPath();
-            launchOptions = {
-                ...launchOptions,
-                args: chromium.args,
-                executablePath
-            };
-            console.log(
-                "Launching browser with executable path:",
-                executablePath
-            );
+            const { waitUntil } = await import("@vercel/functions");
+            waitUntil(task());
         } else {
-            // Local: Use regular puppeteer with bundled Chromium
-            puppeteer = await import("puppeteer");
+            void task();
         }
 
-        const sem = c.req.query("sem");
+        return c.json({ jobId, status: "accepted" }, 202);
+    }
+
+    try {
+        const { puppeteer, launchOptions } = await resolvePuppeteer();
         const courses = await runCourseCrawler(puppeteer, launchOptions, sem);
         if (courses instanceof Response) {
             return courses;
         }
-        const result = await updateD1ViaAPI(env(c), courses);
+        const result = await updateD1ViaAPI(bindings, courses);
         if (!result.success) {
-            return c.json({ message: "Failed to update D1", errors: result.errors }, 500);
+            return c.json(
+                { message: "Failed to update D1", errors: result.errors },
+                500
+            );
         }
         return c.json({ message: "Courses updated successfully" });
     } catch (error) {
         console.error("Error initializing browser:", error);
+        return c.json({ message: "Internal Server Error" }, 500);
     }
 });
 

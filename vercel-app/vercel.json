@@ -1,4 +1,9 @@
 {
     "cleanUrls": true,
-    "rewrites": [{ "source": "/api/(.*)", "destination": "/api/index" }]
+    "rewrites": [{ "source": "/api/(.*)", "destination": "/api/index" }],
+    "functions": {
+        "src/index.ts": {
+            "maxDuration": 300
+        }
+    }
 }

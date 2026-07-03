@@ -1,3 +1,4 @@
+import type { LaunchOptions } from 'puppeteer-core';
 import type { Course } from './schemas/course.schema.js';
 import { sanitizePeriod, sanitizeTime } from './utils.js';
 
@@ -11,7 +12,11 @@ const dayNumMapping: Record<string, number> = Object.freeze({
 	週日: 7,
 });
 
-export async function runCourseCrawler(puppeteer: typeof import("puppeteer"), launchOptions: any, semester?: string) {
+export type PuppeteerLauncher = {
+	launch: (options?: LaunchOptions) => ReturnType<typeof import('puppeteer-core').launch>;
+};
+
+export async function runCourseCrawler(puppeteer: PuppeteerLauncher, launchOptions: LaunchOptions, semester?: string) {
 	const browser = await puppeteer.launch(launchOptions);
 
 	try {
