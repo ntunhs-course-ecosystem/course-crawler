@@ -6,9 +6,27 @@ import {
     Updateable
 } from 'kysely';
 
+export type CrawlJobStatus = 'queued' | 'running' | 'succeeded' | 'failed';
+
 export interface Database {
     courses: CourseTable;
+    crawl_jobs: CrawlJobTable;
 }
+
+export interface CrawlJobTable {
+    id: string;
+    status: CrawlJobStatus;
+    semester: string | null;
+    triggered_by: 'cron' | 'manual';
+    courses_count: number | null;
+    rows_written: number | null;
+    error_message: string | null;
+    started_at: string | null;
+    finished_at: string | null;
+    created_at: ColumnType<string, string | undefined, never>;
+}
+
+export type CrawlJobRow = Selectable<CrawlJobTable>;
 
 export interface CourseTable {
     id: Generated<number>;
