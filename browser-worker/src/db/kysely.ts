@@ -1,5 +1,5 @@
 import { Kysely } from 'kysely';
-import { D1Dialect } from 'kysely-d1';
+import { D1Dialect } from './d1-dialect';
 import type { Database } from '../types/database';
 import { env } from 'cloudflare:workers';
 

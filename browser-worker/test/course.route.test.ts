@@ -2,9 +2,8 @@ import { expect, it, describe, beforeAll } from 'vitest';
 import { env } from 'cloudflare:workers';
 import { SELF, applyD1Migrations } from 'cloudflare:test';
 import { Kysely } from 'kysely';
-import { D1Dialect } from 'kysely-d1';
+import { D1Dialect } from '../src/db/d1-dialect';
 import { Database } from '../src/types/database';
-import path from 'node:path';
 import setupSql from '../src/db/migrations/001-setup.sql?raw';
 
 describe('Course Search API', () => {
