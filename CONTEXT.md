@@ -37,4 +37,24 @@ Crawl Job 的生命週期標記。候選值（待 ADR 定案）：
 
 ## Public API（公開 API）
 
-不需認證、面向一般使用者的端點。目前僅 `/api/v1/search`。
+不需認證、面向一般使用者的端點。目前含 `/api/v1/search`、`GET /api/v1/facets`（見 ADR-0004）。
+
+## Filter Dimension（篩選維度）
+
+搜尋 API 接受的單一 query 條件軸，例如 `semester`、`departmentID`、`grade`、`dayNum`、`periodFrom`、`periodTo`。
+
+## Period Filter（節次篩選）
+
+Search API 以 `periodFrom`、`periodTo`（值域 1–14）表示**查詢區間**，與課程回應中的 `startPeriod`、`endPeriod` 欄位不同。採閉區間 overlap：`course.startPeriod <= to AND course.endPeriod >= from`。僅傳一邊時以 catalog 補齊（`1` 或 `14`）；`from > to` 時 swap。見 ADR-0005。
+
+## Cold Dimension（冷維度）
+
+值域固定、變動極少，由前端 bundle 維護的 Filter Dimension。例如 `grade`、`dayNum`、`periodFrom`、`periodTo`。定義於 `ntunhs-c-plus` 的 `lib/filter-catalog.ts`，頁面載入時不需額外 request。
+
+## Hot Dimension（熱維度）
+
+值域隨 D1 `courses` 資料變動的 Filter Dimension。例如 `semester`、`department`（含 `departmentID`）。由 **Facets API** 提供 distinct 值；前端以 runtime fetch 取得（見 ADR-0004）。
+
+## Facets API
+
+Public API 端點 `GET /api/v1/facets`，回傳 Hot Dimension 的全域 distinct 值（所有學期、所有系所），不依 `semester` query 過濾系所列表。爬蟲更新 D1 後，前端下次 fetch 即自動跟上，無需 redeploy。
