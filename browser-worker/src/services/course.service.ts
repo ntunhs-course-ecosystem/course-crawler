@@ -1,6 +1,7 @@
 import { Kysely } from "kysely";
 import { Database } from "../types/database";
 import type { FacetDepartment, FacetsResponse } from "../schemas/facets.schema";
+import { normalizePeriodRange } from "../lib/period-range";
 
 export interface CourseQueryParams {
     semester?: number[];
@@ -8,8 +9,8 @@ export interface CourseQueryParams {
     department?: string[];
     grade?: string[];
     dayNum?: number[];
-    startPeriod?: number[];
-    endPeriod?: number[];
+    periodFrom?: number;
+    periodTo?: number;
     courseName?: string;
     limit?: number;
     cursor?: number; // 使用 id 作為 Seek Pagination 的 cursor
@@ -25,8 +26,8 @@ export class CourseService {
 			department,
             grade,
             dayNum,
-            startPeriod,
-            endPeriod,
+            periodFrom,
+            periodTo,
             courseName,
             limit = 20,
             cursor,
@@ -58,12 +59,11 @@ export class CourseService {
             query = query.where('dayNum', 'in', dayNum);
         }
 
-        if (startPeriod && startPeriod.length > 0) {
-            query = query.where('startPeriod', 'in', startPeriod);
-        }
-
-        if (endPeriod && endPeriod.length > 0) {
-            query = query.where('endPeriod', 'in', endPeriod);
+        const periodRange = normalizePeriodRange(periodFrom, periodTo);
+        if (periodRange) {
+            query = query
+                .where('startPeriod', '<=', periodRange.to)
+                .where('endPeriod', '>=', periodRange.from);
         }
 
         if (courseName) {
