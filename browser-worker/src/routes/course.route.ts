@@ -7,6 +7,7 @@ import { describeRoute, validator, resolver } from 'hono-openapi';
 import { CourseSchema } from '../schemas/course.schema';
 import { FacetsResponseSchema } from '../schemas/facets.schema';
 import { FACETS_CACHE_CONTROL, publicApiCors } from '../lib/public-cors';
+import { PERIOD_MAX, PERIOD_MIN } from '../lib/period-range';
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -17,7 +18,7 @@ const multiQuery = <T extends z.ZodTypeAny>(schema: T) =>
 	  .or(schema.transform((v) => [v])) // 情況 2: 單一參數，轉為陣列
 	  .default([]);                     // 情況 3: 沒傳，給空陣列
 
-const periodBound = z.coerce.number().int().min(1).max(14);
+const periodBound = z.coerce.number().int().min(PERIOD_MIN).max(PERIOD_MAX);
 
 const searchQuerySchema = z.object({
 	semester: multiQuery(z.coerce.number()).describe('學期 (例如: 1141)'),

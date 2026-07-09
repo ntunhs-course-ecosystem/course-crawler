@@ -24,13 +24,3 @@ export function normalizePeriodRange(
 
 	return { from, to };
 }
-
-/** 課程區間 [start, end] 是否與查詢區間 [from, to] 有交集 */
-export function periodsOverlap(
-	courseStart: number,
-	courseEnd: number,
-	from: number,
-	to: number,
-): boolean {
-	return courseStart <= to && courseEnd >= from;
-}
