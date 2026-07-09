@@ -84,7 +84,7 @@ course.startPeriod <= to AND course.endPeriod >= from
 
 ### 實作待辦
 
-- [ ] `course.service.ts`：overlap SQL + 缺省邊界 + swap
-- [ ] `course.route.ts`：`periodFrom` / `periodTo` schema（單值，廢除舊 param）
-- [ ] `course.route.test.ts`：overlap、單邊、swap、與 dayNum 組合案例
-- [ ] OpenAPI 更新
+- [x] `course.service.ts`：overlap SQL + 缺省邊界 + swap
+- [x] `course.route.ts`：`periodFrom` / `periodTo` schema（單值，廢除舊 param）
+- [x] `course.route.test.ts`：overlap、單邊、swap、與 dayNum 組合案例
+- [x] OpenAPI 更新

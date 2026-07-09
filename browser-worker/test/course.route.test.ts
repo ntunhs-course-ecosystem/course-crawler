@@ -877,14 +877,17 @@ describe('Course Search API', () => {
 
 	describe('Course Search API - Combined Parameters', () => {
 		// 組合：學期 + 星期 + 節次
-		it('應能搜尋 1142 學期、週二、且在 3-4 節的課程', async () => {
-			const res = await SELF.fetch('http://localhost/api/v1/search?semester=1142&dayNum=2&startPeriod=3&endPeriod=4');
+		it('應能搜尋 1142 學期、週二、且與 3-4 節有交集的課程', async () => {
+			const res = await SELF.fetch('http://localhost/api/v1/search?semester=1142&dayNum=2&periodFrom=3&periodTo=4');
 			const body = (await res.json()) as any;
-			console.log(body);
-			// 預期資料：健康大數據分析 (431601861011A0)
-			expect(body.data).toHaveLength(2);
-			expect(body.data[0].courseName).toBe('健康大數據分析');
-			expect(body.data.every((c: any) => c.dayNum === 2 && c.startPeriod >= 3 && c.endPeriod <= 4)).toBe(true);
+			expect(body.data.length).toBeGreaterThan(0);
+			expect(body.data.some((c: any) => c.courseName === '健康大數據分析')).toBe(true);
+			expect(
+				body.data.every(
+					(c: any) =>
+						c.dayNum === 2 && c.startPeriod <= 4 && c.endPeriod >= 3,
+				),
+			).toBe(true);
 		});
 
 		// 組合：系所 + 年級
@@ -895,45 +898,48 @@ describe('Course Search API', () => {
 		});
 	});
 
-	describe('Course Search API - Period Range', () => {
-		it('搜尋 startPeriod=6 應包含所有從第 6 節以後開始的課程', async () => {
-			const res = await SELF.fetch('http://localhost/api/v1/search?startPeriod=6');
+	describe('Course Search API - Period Overlap', () => {
+		it('僅 periodFrom=6 應查詢 [6, 14] 區間 overlap', async () => {
+			const res = await SELF.fetch('http://localhost/api/v1/search?periodFrom=6');
 			const body = (await res.json()) as any;
-			expect(body.data.every((c: any) => c.startPeriod >= 6)).toBe(true);
+			expect(body.data.every((c: any) => c.startPeriod <= 14 && c.endPeriod >= 6)).toBe(true);
 		});
 
-		it('搜尋 endPeriod=4 應包含所有在第 4 節以前結束的課程', async () => {
-			const res = await SELF.fetch('http://localhost/api/v1/search?endPeriod=4');
+		it('僅 periodTo=4 應查詢 [1, 4] 區間 overlap', async () => {
+			const res = await SELF.fetch('http://localhost/api/v1/search?periodTo=4');
 			const body = (await res.json()) as any;
-			expect(body.data.every((c: any) => c.endPeriod <= 4)).toBe(true);
+			expect(body.data.every((c: any) => c.startPeriod <= 4 && c.endPeriod >= 1)).toBe(true);
 		});
 
-		it('搜尋 5-7 節應精準匹配 "休閒與生活"', async () => {
-			const res = await SELF.fetch('http://localhost/api/v1/search?startPeriod=5&endPeriod=7');
+		it('periodFrom=5&periodTo=7 應命中與 5-7 節有交集的課程', async () => {
+			const res = await SELF.fetch('http://localhost/api/v1/search?periodFrom=5&periodTo=7');
 			const body = (await res.json()) as any;
-			// 注意：根據您的 Service 邏輯，這是找「完全落在 5-7 區間內」的課程
 			expect(body.data.some((c: any) => c.courseName === '休閒與生活')).toBe(true);
-		});
-	});
-
-	describe('Course Search API - Period Range', () => {
-		it('搜尋 startPeriod=6 應包含所有從第 6 節以後開始的課程', async () => {
-			const res = await SELF.fetch('http://localhost/api/v1/search?startPeriod=6');
-			const body = (await res.json()) as any;
-			expect(body.data.every((c: any) => c.startPeriod >= 6)).toBe(true);
+			expect(body.data.every((c: any) => c.startPeriod <= 7 && c.endPeriod >= 5)).toBe(true);
 		});
 
-		it('搜尋 endPeriod=4 應包含所有在第 4 節以前結束的課程', async () => {
-			const res = await SELF.fetch('http://localhost/api/v1/search?endPeriod=4');
+		it('periodFrom=1&periodTo=10 應命中區間內多段課程', async () => {
+			const res = await SELF.fetch('http://localhost/api/v1/search?periodFrom=1&periodTo=10');
 			const body = (await res.json()) as any;
-			expect(body.data.every((c: any) => c.endPeriod <= 4)).toBe(true);
+			expect(body.data.some((c: any) => c.startPeriod === 1 && c.endPeriod === 2)).toBe(true);
+			expect(body.data.some((c: any) => c.startPeriod === 8 && c.endPeriod === 10)).toBe(true);
+			expect(body.data.every((c: any) => c.startPeriod <= 10 && c.endPeriod >= 1)).toBe(true);
 		});
 
-		it('搜尋 5-7 節應精準匹配 "休閒與生活"', async () => {
-			const res = await SELF.fetch('http://localhost/api/v1/search?startPeriod=5&endPeriod=7');
+		it('periodFrom > periodTo 應自動 swap 後查詢', async () => {
+			const res = await SELF.fetch('http://localhost/api/v1/search?periodFrom=10&periodTo=1');
+			const swapped = await SELF.fetch('http://localhost/api/v1/search?periodFrom=1&periodTo=10');
 			const body = (await res.json()) as any;
+			const swappedBody = (await swapped.json()) as any;
+			expect(body.data.map((c: any) => c.courseFullID).sort()).toEqual(
+				swappedBody.data.map((c: any) => c.courseFullID).sort(),
+			);
+		});
 
-			expect(body.data.every((c: any) => c.startPeriod >= 5 && c.endPeriod <= 7)).toBe(true);
+		it('periodFrom=11&periodTo=12 不應命中僅 1-2 節的課程', async () => {
+			const res = await SELF.fetch('http://localhost/api/v1/search?periodFrom=11&periodTo=12');
+			const body = (await res.json()) as any;
+			expect(body.data.every((c: any) => !(c.startPeriod === 1 && c.endPeriod === 2))).toBe(true);
 		});
 	});
 
@@ -994,16 +1000,6 @@ describe('Course Search API', () => {
 			expect(days.has(2)).toBe(true);
 			expect(days.has(5)).toBe(true);
 			expect(body.data.every((c: any) => [1, 2, 5].includes(c.dayNum))).toBe(true);
-		});
-
-		it('應該支援精準多節次查詢 (第一節或第八節)', async () => {
-			const res = await SELF.fetch('http://localhost/api/v1/search?startPeriod=1&startPeriod=8');
-			const body = (await res.json()) as any;
-
-			// 預期資料包含：資料探勘 (1節) 和 傳播與生活 (8節)
-			const startPeriods = body.data.map((c: any) => c.startPeriod);
-			expect(startPeriods).toContain(1);
-			expect(startPeriods).toContain(8);
 		});
 
 		it('應該支援混合多選項查詢 (1142 學期 且 星期二或星期四)', async () => {
