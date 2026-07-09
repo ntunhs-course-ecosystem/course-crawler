@@ -17,14 +17,16 @@ const multiQuery = <T extends z.ZodTypeAny>(schema: T) =>
 	  .or(schema.transform((v) => [v])) // 情況 2: 單一參數，轉為陣列
 	  .default([]);                     // 情況 3: 沒傳，給空陣列
 
+const periodBound = z.coerce.number().int().min(1).max(14);
+
 const searchQuerySchema = z.object({
 	semester: multiQuery(z.coerce.number()).describe('學期 (例如: 1141)'),
 	departmentID: multiQuery(z.string()).describe('系所代碼'),
 	department: multiQuery(z.string()).describe('系所'),
 	grade: multiQuery(z.string()).describe('年級'),
 	dayNum: multiQuery(z.coerce.number()).describe('星期幾 (1-7)'),
-	startPeriod: multiQuery(z.coerce.number()).describe('開始節次'),
-	endPeriod: multiQuery(z.coerce.number()).describe('結束節次'),
+	periodFrom: periodBound.optional().describe('節次查詢區間下界（含）'),
+	periodTo: periodBound.optional().describe('節次查詢區間上界（含）'),
 
 	courseName: z.string().optional().describe('課程名稱'),
 	limit: z.coerce.number().optional().describe('每頁筆數 (預設: 20)'),
