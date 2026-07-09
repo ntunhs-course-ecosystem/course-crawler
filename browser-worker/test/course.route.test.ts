@@ -1013,4 +1013,42 @@ describe('Course Search API', () => {
 			expect(body.data.every((c: any) => c.semester === 1142 && (c.dayNum === 2 || c.dayNum === 4))).toBe(true);
 		});
 	});
+
+	describe('Facets API', () => {
+		it('應回傳全域 distinct 學期（降序）與系所（依名稱升序）', async () => {
+			const res = await SELF.fetch('http://localhost/api/v1/facets');
+			expect(res.status).toBe(200);
+
+			const body = (await res.json()) as {
+				semesters: number[];
+				departments: Array<{ id: string; name: string }>;
+			};
+
+			expect(body.semesters).toEqual([1142, 1122]);
+			expect(body.departments).toEqual([
+				{ id: '11230', name: '二年制進修部護理系(日間班)' },
+				{ id: '43160', name: '人工智慧與健康大數據研究所' },
+				{ id: '33140', name: '四年制生死與健康心理諮商系' },
+				{ id: '22140', name: '四年制資訊管理系' },
+			]);
+		});
+
+		it('應附帶 Cache-Control 標頭', async () => {
+			const res = await SELF.fetch('http://localhost/api/v1/facets');
+			expect(res.headers.get('Cache-Control')).toBe('public, max-age=3600');
+		});
+
+		it('應允許 GitHub Pages 來源的 CORS preflight', async () => {
+			const res = await SELF.fetch('http://localhost/api/v1/facets', {
+				method: 'OPTIONS',
+				headers: {
+					Origin: 'https://example.github.io',
+					'Access-Control-Request-Method': 'GET',
+				},
+			});
+
+			expect(res.status).toBe(204);
+			expect(res.headers.get('Access-Control-Allow-Origin')).toBe('https://example.github.io');
+		});
+	});
 });

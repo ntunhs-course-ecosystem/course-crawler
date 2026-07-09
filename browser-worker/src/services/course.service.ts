@@ -1,5 +1,6 @@
 import { Kysely } from "kysely";
 import { Database } from "../types/database";
+import type { FacetDepartment, FacetsResponse } from "../schemas/facets.schema";
 
 export interface CourseQueryParams {
     semester?: number[];
@@ -92,5 +93,36 @@ export class CourseService {
                 nextCursor
             }
         };
+    }
+
+    async getFacets(): Promise<FacetsResponse> {
+        const [semesterRows, departmentRows] = await Promise.all([
+            this.db
+                .selectFrom('courses')
+                .select('semester')
+                .distinct()
+                .orderBy('semester', 'desc')
+                .execute(),
+            this.db
+                .selectFrom('courses')
+                .select(['departmentID', 'department'])
+                .distinct()
+                .orderBy('department', 'asc')
+                .execute(),
+        ]);
+
+        const semesters = semesterRows.map((row) => row.semester);
+        const departmentById = new Map<string, FacetDepartment>();
+        for (const row of departmentRows) {
+            if (!departmentById.has(row.departmentID)) {
+                departmentById.set(row.departmentID, {
+                    id: row.departmentID,
+                    name: row.department,
+                });
+            }
+        }
+        const departments = [...departmentById.values()];
+
+        return { semesters, departments };
     }
 }

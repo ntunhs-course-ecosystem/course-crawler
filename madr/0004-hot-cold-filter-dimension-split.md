@@ -92,8 +92,8 @@ Response：
 
 ### 實作待辦
 
-- [ ] `browser-worker`：`GET /api/v1/facets` route + service（Kysely `distinct()`）
-- [ ] OpenAPI 更新
-- [ ] Worker CORS headers（若尚未設定）
+- [x] `browser-worker`：`GET /api/v1/facets` route + service（Kysely `distinct()`）
+- [x] OpenAPI 更新
+- [x] Worker CORS headers（若尚未設定）
 - [ ] `ntunhs-c-plus/lib/filter-catalog.ts`
 - [ ] 前端 facets client fetch（無 client cache）

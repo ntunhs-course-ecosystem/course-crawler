@@ -5,8 +5,12 @@ import { db } from '../db/kysely';
 import z from 'zod';
 import { describeRoute, validator, resolver } from 'hono-openapi';
 import { CourseSchema } from '../schemas/course.schema';
+import { FacetsResponseSchema } from '../schemas/facets.schema';
+import { FACETS_CACHE_CONTROL, publicApiCors } from '../lib/public-cors';
 
 const app = new Hono<{ Bindings: Bindings }>();
+
+app.use('*', publicApiCors);
 
 const multiQuery = <T extends z.ZodTypeAny>(schema: T) =>
 	z.array(schema)                    // 情況 1: 已經是陣列 (多個參數)
@@ -61,6 +65,43 @@ app.get(
 			return c.json(result);
 		} catch (error) {
 			console.error('Search failed:', error);
+			return c.json({ error: 'Internal Server Error' }, 500);
+		}
+	}
+);
+
+app.get(
+	'/api/v1/facets',
+	describeRoute({
+		summary: '查詢篩選面向值',
+		description: '回傳學期與系所的全域 distinct 值，供搜尋 UI 使用',
+		responses: {
+			200: {
+				description: '學期與系所列表',
+				content: {
+					'application/json': {
+						schema: resolver(FacetsResponseSchema),
+					},
+				},
+				headers: {
+					'Cache-Control': {
+						schema: { type: 'string' },
+						description: 'CDN 快取（max-age=3600）',
+					},
+				},
+			},
+		},
+	}),
+	async (c) => {
+		const service = new CourseService(db);
+
+		try {
+			const result = await service.getFacets();
+			return c.json(result, 200, {
+				'Cache-Control': FACETS_CACHE_CONTROL,
+			});
+		} catch (error) {
+			console.error('Facets failed:', error);
 			return c.json({ error: 'Internal Server Error' }, 500);
 		}
 	}
