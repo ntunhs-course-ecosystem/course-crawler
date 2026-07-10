@@ -24,6 +24,7 @@ const searchQuerySchema = z.object({
 	semester: multiQuery(z.coerce.number()).describe('學期 (例如: 1141)'),
 	departmentID: multiQuery(z.string()).describe('系所代碼'),
 	department: multiQuery(z.string()).describe('系所'),
+	courseType: multiQuery(z.string()).describe('課別'),
 	grade: multiQuery(z.string()).describe('年級'),
 	dayNum: multiQuery(z.coerce.number()).describe('星期幾 (1-7)'),
 	periodFrom: periodBound.optional().describe('節次查詢區間下界（含）'),

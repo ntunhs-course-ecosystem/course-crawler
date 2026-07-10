@@ -7,6 +7,7 @@ export interface CourseQueryParams {
 	semester?: number[];
 	departmentID?: string[];
 	department?: string[];
+	courseType?: string[];
 	grade?: string[];
 	dayNum?: number[];
 	periodFrom?: number;
@@ -24,6 +25,7 @@ export class CourseService {
 			semester,
 			departmentID,
 			department,
+			courseType,
 			grade,
 			dayNum,
 			periodFrom,
@@ -47,6 +49,10 @@ export class CourseService {
 			query = query.where((eb) =>
 				eb.or(department.map((dept) => eb('department', 'like', `%${dept}%`))),
 			);
+		}
+
+		if (courseType && courseType.length > 0) {
+			query = query.where('courseType', 'in', courseType);
 		}
 
 		if (grade && grade.length > 0) {
