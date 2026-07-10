@@ -1034,17 +1034,45 @@ describe('Course Search API', () => {
 			expect(res.headers.get('Cache-Control')).toBe('public, max-age=3600');
 		});
 
-		it('應允許 GitHub Pages 來源的 CORS preflight', async () => {
+	});
+
+	describe('Public API CORS', () => {
+		const githubPagesOrigin = 'https://ntunhs-course-ecosystem.github.io';
+		const localhostOrigin = 'http://localhost:3000';
+
+		it('應允許 GitHub Pages 來源的 CORS preflight（facets）', async () => {
 			const res = await SELF.fetch('http://localhost/api/v1/facets', {
 				method: 'OPTIONS',
 				headers: {
-					Origin: 'https://example.github.io',
+					Origin: githubPagesOrigin,
 					'Access-Control-Request-Method': 'GET',
 				},
 			});
 
 			expect(res.status).toBe(204);
-			expect(res.headers.get('Access-Control-Allow-Origin')).toBe('https://example.github.io');
+			expect(res.headers.get('Access-Control-Allow-Origin')).toBe(githubPagesOrigin);
+		});
+
+		it('應允許 localhost 開發來源的 CORS preflight（search）', async () => {
+			const res = await SELF.fetch('http://localhost/api/v1/search', {
+				method: 'OPTIONS',
+				headers: {
+					Origin: localhostOrigin,
+					'Access-Control-Request-Method': 'GET',
+				},
+			});
+
+			expect(res.status).toBe(204);
+			expect(res.headers.get('Access-Control-Allow-Origin')).toBe(localhostOrigin);
+		});
+
+		it('GET 回應應附帶 Access-Control-Allow-Origin', async () => {
+			const res = await SELF.fetch('http://localhost/api/v1/facets', {
+				headers: { Origin: githubPagesOrigin },
+			});
+
+			expect(res.status).toBe(200);
+			expect(res.headers.get('Access-Control-Allow-Origin')).toBe(githubPagesOrigin);
 		});
 	});
 });
