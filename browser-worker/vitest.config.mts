@@ -11,5 +11,8 @@ export default defineWorkersConfig({
 				}
 			},
 		},
+		coverage: {
+			include: ['src/**/*.ts'],
+		}
 	},
 });
